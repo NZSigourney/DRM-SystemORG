@@ -1,0 +1,8 @@
+name: DRM-System
+main: DRMmarching\SystemORG\Main
+api:
+ - 3.0.0
+ - 3.2.0
+version: 1.0-BETA
+author: BlackPMFury
+description: With Reduce Money when you are dead!
