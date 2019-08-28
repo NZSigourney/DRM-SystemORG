@@ -43,25 +43,83 @@ class Main extends PluginBase implements Listener{
 		$this->EconomyAPI = $this->getServer()->getPluginManager()->getPlugin("EconomyAPI");
 		$this->eco = EconomyAPI::getInstance();
 		$this->pp = $this->getServer()->getPluginManager()->getPlugin("PurePerms");
+		$this->point = new Config($this->getDataFolder() . "PointOnHit.yml", Config::YAML, []);
+	}
+	
+	public function taoNguoiDung($ten){
+		$ten = strtolower($ten);
+		$this->point->set($ten, 0);
+		$this->point->save();
+	}
+	
+	public function congDiem($ten, $diem){
+		$ten = strtolower($ten);
+		$diemhienco = $this->point->get($ten);
+		$this->point->set($ten, $diemhienco + $diem);
+		$this->point->save();
+	}
+	
+	public function truDiem($ten, $diem){
+		$ten = strtolower($ten);
+		$this->congDiem($ten, -$diem);
+	}
+	
+	public function caiDiem($ten){
+		$ten = strtolower($ten);
+		$this->point($ten, $diem);
+		$this->point->save();
+	}
+	
+	public function xemDiem($ten){
+		$ten = strtolower($ten);
+		if($this->kiemTra($ten)){
+			$diemhienco = $this->point->get($ten);
+			return $diemhienco;
+		}
+		return false;
+	}
+	
+	public function kiemTra($ten){
+		$ten = strtolower($ten);
+		if($this->point->exists($ten)){
+			return true;
+		}
+		return false;
 	}
 	
 	public function onJoin(PlayerJoinEvent $ev){
 		$player = $ev->getPlayer();
 		foreach($this->getServer()->getOnlinePlayers() as $players){
-			$players->setNameTag("Player");
-			$players->sendMessage($this->tag . " §aBạn Nhận được Tag §cPlayer§a!");
+			$players->setNameTag("§c• §aSPNVN §c•\n§c•§bBest §aPlayer§c•");
+			$players->sendMessage($this->tag . " §aBạn Nhận được Tag §c• §aSPNVN §c•\n§c•§bBest §aPlayer§c•");
+		}
+		if(!$this->kiemTra($ten)){
+			$this->taoNguoiDung($ten);
 		}
 		return true;
 	}
 	
 	public function onHit(EntityDamageEvent $ev){
+		$player = $ev->getPlayer();
+		$ten = strtolower($player->getName());
+		$diemhienco = $this->point->get($ten);
+		$sword = Item::get(276, 0, 1);
 		if($ev instanceof EntityDamageByChildEntityEvent){
 			$target = $ev->getEntity();
 			$damager = $ev->getDamager();
-			$damager->sendTip($this->tag . "§a Bạn Nhận Được §b12 Xu §aTừ việc Đánh §c". $target->getName());
+			$ten = strtolower($sender->getName());
+			$damager->sendTip($this->tag . "§a Bạn Nhận Được §b12 Xu và 4 điểm §aTừ việc Đánh §c". $target->getName());
 			$damager->getLevel()->addSound(new AnvilFallSound($damager), [$damage]);
 			$this->eco->addMoney($damager, 12);
+			$this->congDiem($ten, +5);
+			if($damager->contains($damager->getInventory()->getItem($sword))){
+				$this->congDien($ten, + 12);
+				$damager->sendPopup($this->tag . "§a Bạn nhận được §e12 Điểm§a Vì Đánh §c".$target->getName()." §aBằng §b". $sword->getName());
+			}
 		}
+		/**if($diemhienco >= 10){
+			//code
+		}*/
 	}
 	
 	public function onDeath(PlayerDeathEvent $ev){
@@ -91,6 +149,19 @@ class Main extends PluginBase implements Listener{
 			break;
 		}
 		$this->eco->reduceMoney($player, $reduceMoney);
+		$sender->sendMessage($this->tag . " §cBạn Bị trừ §e1 Điểm§c Vì chết!");
+		$this->truDiem($ten, -2);
+	}
+	
+	public function onCommand(CommandSender $sender, Command $cmd, string $label, array $args): bool{
+		switch($cmd->getName()){
+			case "diempvp":
+			$ten = strtolower($sender->getName());
+			$diemhienco = $this->xemDiem($ten);
+			$msg = "§b-==§a Điểm PvP Của Bạn§b ==-\n§c +§a Điểm:§e $diemhienco";
+			$sender->sendMessage($msg);
+		}
+		return true;
 	}
 	
 	public function onDisable(){
